@@ -81,6 +81,8 @@ songs %>%
         plot.caption.position = "plot", 
         legend.direction = "horizontal", 
         legend.position = c(.65, .15))
+
+ggsave("prevelance of phineas and ferb genres.png", width = 8, height = 5)
 ```
 
 ## Does the length of songs differ by season?
@@ -131,6 +133,9 @@ songs %>%
         panel.grid.major.x = element_blank(),
         plot.background = element_rect(fill = "#ffeac9"),
         panel.grid.major.y = element_line(color = "#e0c69d"))
+
+ggsave("prevelance of phineas and ferb song length.png", 
+       width = 8, height = 5)
 ```
 
 Does the IMDb rating distribution differ by genre?
@@ -189,5 +194,8 @@ songs %>%
                                   size = 17),
         plot.background = element_rect(fill = "#ffeac9"),
         panel.grid.major.y = element_line(color = "#e0c69d"))
+
+ggsave("ratings of phineas and ferb episodes.png", 
+       width = 8, height = 5)
 ```
 
