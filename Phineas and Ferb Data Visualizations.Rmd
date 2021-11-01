@@ -1,0 +1,193 @@
+---
+title: "Phineas and Ferb Data Visualizations"
+author: "Phillip Sanderell"
+date: "10/31/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load required packages
+
+```{r}
+library(tidyverse)
+library(showtext)
+```
+
+# Import data
+
+```{r}
+songs <- read_csv("pnf_songs.csv")
+```
+
+# Data visualizations
+
+Now comes the fun part, we have data and now we can visualize it to try to make some summarizations or inferences.
+
+## Setting some formating presets to variables
+
+```{r}
+small_plot_text <- element_text(family = "Graphite Std Bold", 
+                                 size = 15,
+                                 color = "black")
+
+big_plot_text <- element_text(face = "bold", 
+                                  family = "Ferbtastic",
+                                  size = 30)
+```
+
+
+## What are the most common song genres?
+
+```{r}
+songs %>% 
+  mutate(genre = str_to_lower(genre)) %>% 
+  separate(genre, into = c("g1", "g2", "g3", "g4", "g5"),
+           sep = "[,/]") %>% 
+  pivot_longer(g1:g5, "col", values_to = "genre") %>% 
+  mutate(genre = str_trim(genre)) %>% 
+  filter(!is.na(genre)) %>% 
+  mutate(season = substr(pc, 1, 1)) %>% 
+  group_by(genre) %>% 
+  mutate(genre_count = n()) %>% 
+  filter(genre_count > 10) %>% 
+  count(genre, season, sort = TRUE) %>% 
+  na.omit(season) %>% 
+  group_by(genre) %>% 
+  mutate(genre_count = sum(n)) %>% 
+  ungroup() %>% 
+  mutate(genre = fct_reorder(genre, genre_count)) %>% 
+  mutate(season = case_when(season == "M" ~ "movie", 
+                            TRUE ~ season)) %>% 
+  mutate(season = fct_relevel(season, "movie", "4", "3", "2", "1")) %>% 
+  ggplot(aes(y = genre, x = n, fill = season)) + 
+  geom_col(color = "black") + 
+  theme_minimal() + 
+  scale_fill_brewer(palette = "YlOrRd", 
+                    guide = guide_legend(reverse = TRUE)) + 
+  labs(title = "Pop, Rock, and Show Tunes are the most\ncommon genre of P&F songs",
+       caption = "\nData from phineasandferb.fandom.com  |  Scraped and Visualized by @PhilliPhresh") + 
+  theme(axis.title = element_blank(), 
+        panel.grid.major = element_blank(), 
+        plot.title.position = "plot",
+        plot.background = element_rect(fill = "#ffeac9"),
+        plot.title = big_plot_text,
+        axis.text = small_plot_text,
+        legend.text = small_plot_text,
+        legend.title = small_plot_text, 
+        plot.caption = element_text(hjust = 1),
+        plot.caption.position = "plot", 
+        legend.direction = "horizontal", 
+        legend.position = c(.65, .15))
+```
+
+## Does the length of songs differ by season?
+
+```{r}
+songs %>% 
+  mutate(genre = str_to_lower(genre)) %>% 
+  mutate(length = str_extract(length, "[:digit:]+[:punct:][:digit:]+")) %>% 
+  mutate(length = paste0("00:0", length) %>% parse_time()) %>% 
+  mutate(season = substr(pc, 1, 1)) %>% 
+  mutate(season = case_when(season == "M" ~ "movies", 
+                            TRUE ~ season)) %>% 
+  filter(!is.na(season)) %>% 
+  mutate(season = fct_relevel(season, "1", "2", "3", "4", "movies")) %>%
+  ggplot(aes(season, length, fill = season)) + 
+  geom_violin(draw_quantiles = c(.25, .5, .75), kernel = "triangular",
+              alpha = .9) + 
+  annotate("text", x = 5.75, y = 2*60 + 30, label = "75th percentile", 
+           hjust = 0, family = "Graphite Std Bold") + 
+  geom_curve(aes(x = 5.75, y = 2*60 + 30, xend = 5.35, yend = 2*60),
+              arrow = arrow(length = unit(0.03, "npc")), curvature = .4) + 
+  annotate("text", x = 5.75, y = 1.75*60, label = "50th", 
+           hjust = 0, family = "Graphite Std Bold") + 
+  geom_curve(aes(x = 5.75, y = 1.75*60-1, xend = 5.45, yend = 1.75*60-1),
+              arrow = arrow(length = unit(0.03, "npc")), curvature = 0) +
+  annotate("text", x = 5.75, y = 1*60, label = "25th", 
+           hjust = 0, family = "Graphite Std Bold") + 
+  geom_curve(aes(x = 5.75, y = 1*60, xend = 5.3, yend = 1.5*60 - 5),
+              arrow = arrow(length = unit(0.03, "npc")), curvature = -.4) +
+  labs(title = "Length of songs in P&F seem to get longer\nand more predictible over time",
+       x = NULL,
+       y = NULL, 
+       caption = "\nData from phineasandferb.fandom.com  |  Scraped and Visualized by @PhilliPhresh") + 
+  expand_limits(x = 7.5) +
+  scale_y_continuous(breaks = c(0, 1*60, 2*60, 3*60),
+                     labels = c("", "1 minute", "2 minutes", "3 minutes")) +
+  scale_x_discrete(breaks = c("1", "2", "3", "4", "movies"),
+                   labels = c("Season 1", "2", "3", "4", "Movies")) + 
+  scale_fill_brewer(palette = "YlOrRd", 
+                    guide =  NULL, 
+                    direction = -1) + 
+  theme_minimal() + 
+  theme(plot.title.position = "plot", 
+        plot.title = big_plot_text, 
+        axis.text = small_plot_text, 
+        axis.title = small_plot_text,
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.background = element_rect(fill = "#ffeac9"),
+        panel.grid.major.y = element_line(color = "#e0c69d"))
+```
+
+Does the IMDb rating distribution differ by genre?
+
+```{r}
+songs %>% 
+  mutate(genre = str_to_lower(genre)) %>% 
+  separate(genre, into = c("g1", "g2", "g3", "g4", "g5"),
+           sep = "[,/]") %>% 
+  pivot_longer(g1:g5, "col", values_to = "genre") %>% 
+  mutate(genre = str_trim(genre)) %>% 
+  filter(!is.na(genre)) %>% 
+  mutate(med_overall_rating = median(imdb_rating, na.rm = TRUE)) %>% 
+  group_by(genre) %>% 
+  summarise(med_overall_rating = med_overall_rating, 
+            med_imdb_rating = median(imdb_rating, na.rm = TRUE),
+            std_imdb_rating = var(imdb_rating, na.rm = TRUE)^.5, 
+             n_genre = n(),
+            imdb_rating_diff = med_imdb_rating - med_overall_rating) %>% 
+  distinct() %>% 
+  filter(n_genre > 10) %>% 
+  mutate(abs_rating_diff = abs(imdb_rating_diff)) %>% 
+  slice_max(abs_rating_diff, n = 10) %>% 
+  ungroup() %>% 
+  mutate(genre = fct_reorder(genre, n_genre * 
+                               if_else(imdb_rating_diff<0, -1, 1))) %>% 
+  mutate(genre = fct_reorder(genre, med_imdb_rating)) %>%
+  ggplot(aes(x = med_imdb_rating, y = genre)) + 
+  geom_segment(aes(x = med_overall_rating, xend = med_imdb_rating,
+                   y = genre, yend = genre)) + 
+  geom_point(aes(size = n_genre), fill = "#F3390E", shape = 21) + 
+  
+  geom_curve(xend = 8.15, yend = 4.5, x = 8.16, y = 3.5,
+             arrow = arrow(length = unit(0.03, "npc")), curvature = -.4) + 
+  annotate(geom = "label", x = 8.16 + .005, y = 3.5, 
+           label = "Larger dots mean\nmore episodes with\nthat genre of song",
+           hjust = 0, lineheight = .8, family = "Graphite Std Bold",
+           fill = "#FFFEAE") + 
+  
+  labs(title = "Episodes with rock songs have higher ratings",
+       subtitle = "Episodes with pop or holiday songs have lower ratings",
+       y = NULL,
+       x = "Median IMDb Rating\n(for episodes with songs in various genres)",
+       caption = "\nData from phineasandferb.fandom.com  |  Scraped and Visualized by @PhilliPhresh") +
+  guides(size = "none") + 
+  theme_minimal() + 
+  scale_x_continuous(breaks = c(8, 8.10, 8.20)) + 
+  theme(plot.title.position = "plot",
+        panel.grid.minor.x = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = big_plot_text,
+        axis.text = small_plot_text,
+        axis.title = small_plot_text,
+        plot.subtitle = element_text(face = "bold", 
+                                  family = "Ferbtastic",
+                                  size = 17),
+        plot.background = element_rect(fill = "#ffeac9"),
+        panel.grid.major.y = element_line(color = "#e0c69d"))
+```
+
