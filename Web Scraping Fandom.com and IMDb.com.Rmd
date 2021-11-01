@@ -1,0 +1,199 @@
+---
+title: "Web Scraping Fandom.com and IMDb.com"
+author: "Phillip Sanderell"
+date: "10/31/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load required packages
+
+```{r}
+library(tidyverse)
+library(rvest)
+```
+
+# Scrape data from Fandom wiki
+
+Collect links to song pages.
+
+```{r}
+page <- read_html("https://phineasandferb.fandom.com/wiki/List_of_songs")
+
+song_names <- page %>% 
+  html_elements('tr+ tr th a:not([title^="Category"])') %>% 
+  html_text(trim = TRUE)
+
+song_links <- page %>% 
+  html_elements('tr+ tr th a:not([title^="Categor"])') %>% 
+  html_attr("href") %>% 
+  paste0("https://phineasandferb.fandom.com", .)
+
+songs <- tibble(song_title = song_names,
+       song_link = song_links)
+```
+
+Pull episode titles and other episode data.
+
+```{r}
+page <- read_html("https://phineasandferb.fandom.com/wiki/List_of_Phineas_and_Ferb_episodes")
+
+pnf_episodes <- tibble()
+
+for (s in 1:4) {
+  intermediate_table_1 <- page %>% 
+  html_elements("h2 + table") %>% 
+  html_table() %>% 
+  .[[s]] %>% 
+  .[-seq(3, 300, 3), ]
+
+intermediate_table_2 <- 
+  intermediate_table_1[seq(2, 300, 2), 1] %>% 
+  filter(!is.na(`#`)) %>% 
+  rename(description = `#`)
+
+intermediate_table_3 <- 
+  intermediate_table_1[seq(1, 300, 2), ] %>% 
+  filter(!is.na(`#`))
+
+intermediate_table_4 <- tibble(intermediate_table_3, intermediate_table_2)
+
+pnf_episodes <- rbind(pnf_episodes, intermediate_table_4)
+}
+```
+
+Clean episode titles and such.
+
+```{r}
+pnf_episodes <- 
+  pnf_episodes %>% 
+  rename(no = `#`,
+         ep_title = Title,
+         story_by_written_by = `Story by/Written by`,
+         director = `Directed by`,
+         air_date = `Original airdate`,
+         pc = PC) %>% 
+  mutate(air_date = str_remove(air_date, " .*")) %>% 
+  mutate(air_date = as.Date(air_date))
+```
+
+Match episode title to song title and pull song genre and length.
+
+```{r}
+for (s in 1:nrow(songs)) {
+  # Read song page
+  page <- read_html(songs[s, "song_link"] %>% pull)
+  
+  # Collect the first link in an article's first paragraph that matches an item in the episode title list
+  guess_of_ep_title <- 
+    page %>% 
+    html_elements('.mw-parser-output [title]') %>% 
+    html_text(trim = TRUE) %>% 
+    tibble() %>% 
+    filter(. %in% (pnf_episodes %>% select(ep_title) %>% pull)) %>% 
+    slice_head(n = 1) %>% 
+    pull()
+  
+  if (length(guess_of_ep_title) == 0) {
+    songs[s, "ep_title"] = NA
+  } else {
+    songs[s, "ep_title"] = guess_of_ep_title
+  }
+  
+  # Collect song genre
+  genre <- 
+    page %>% 
+    html_element("[data-source=genre] div") %>% 
+    html_text(trim = TRUE)
+    
+  if (length(genre) == 0) {
+    songs[s, "genre"] = NA
+  } else {
+    songs[s, "genre"] = genre
+  }
+  
+  # Collect length of song
+  length <- 
+    page %>% 
+    html_element("[data-source=runtime] div") %>% 
+    html_text(trim = TRUE)
+    
+  if (length(genre) == 0) {
+    songs[s, "length"] = NA
+  } else {
+    songs[s, "length"] = length
+  }
+  
+  # Fandom.com's robots.txt page does not specify a web crawl time so I used 3-5 seconds to be courteous. Should take about 40 minutes
+  Sys.sleep(2 + runif(1, 1, 2))
+}
+```
+
+# Pull data from IMDb
+
+```{r}
+pnf_imdb <- tibble()
+
+for (s in 1:4) {
+  page <- 
+    read_html(paste0("https://www.imdb.com/title/tt0852863/episodes?season=", s))
+  
+  intermediate_table_5 <- 
+    page %>% 
+    html_elements("#episodes_content strong a") %>% 
+    html_text(trim = TRUE)
+  
+  intermediate_table_6 <- 
+    page %>% 
+    html_elements(".ipl-rating-star.small .ipl-rating-star__rating") %>% 
+    html_text(trim = TRUE)
+  
+  intermediate_table_7 <- 
+    page %>% 
+    html_elements(".ipl-rating-star__total-votes") %>% 
+    html_text(trim = TRUE) %>% 
+    str_remove_all("[()]")
+  
+  intermediate_table_8 <- 
+    tibble(titles = intermediate_table_5,
+           imdb_rating = intermediate_table_6,
+           no_of_votes = intermediate_table_7)
+  
+  pnf_imdb <- rbind(pnf_imdb, intermediate_table_8)
+  
+  Sys.sleep(3 + runif(1, 1, 2))
+}
+```
+
+The IMDb data pairs the segments that are in the same episode. Split the episodes.
+
+```{r}
+pnf_imdb <- 
+  pnf_imdb %>% 
+  separate(titles, into = c("ep_1", "ep_2"), sep = "/") %>% 
+  pivot_longer(ep_1:ep_2, names_to = "column", values_to = "ep_title") %>% 
+  select(ep_title, imdb_rating, no_of_votes) %>% 
+  filter(!is.na(ep_title))
+```
+
+# Match IMDb data with Fandom data.
+
+```{r}
+songs_with_ratings <- 
+  songs %>% 
+  full_join(pnf_imdb) %>% 
+  full_join(pnf_episodes) %>% 
+  mutate(across(c("imdb_rating", "no_of_votes", "no"), as.numeric)) %>% 
+  distinct()
+```
+
+A lot of the songs we don't have ratings for a specials or movies (i.e. they aren't listed as regular episodes in IMDb).
+
+# Export data
+
+```{r}
+write_csv(songs_with_ratings, "pnf_songs.csv")
+```
