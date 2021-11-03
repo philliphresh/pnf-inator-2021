@@ -2,7 +2,9 @@
 title: "Phineas and Ferb Data Visualizations"
 author: "Phillip Sanderell"
 date: "10/31/2021"
-output: html_document
+output: 
+  md_document:
+    variant: markdown_github
 ---
 
 ```{r setup, include=FALSE}
@@ -82,7 +84,7 @@ songs %>%
         legend.direction = "horizontal", 
         legend.position = c(.65, .15))
 
-ggsave("prevelance of phineas and ferb genres.png", width = 8, height = 5)
+# ggsave("prevelance of phineas and ferb genres.png", width = 8, height = 5)
 ```
 
 ## Does the length of songs differ by season?
@@ -134,8 +136,8 @@ songs %>%
         plot.background = element_rect(fill = "#ffeac9"),
         panel.grid.major.y = element_line(color = "#e0c69d"))
 
-ggsave("prevelance of phineas and ferb song length.png", 
-       width = 8, height = 5)
+# ggsave("prevelance of phineas and ferb song length.png", 
+#        width = 8, height = 5)
 ```
 
 Does the IMDb rating distribution differ by genre?
@@ -195,8 +197,8 @@ songs %>%
         plot.background = element_rect(fill = "#ffeac9"),
         panel.grid.major.y = element_line(color = "#e0c69d"))
 
-ggsave("ratings of phineas and ferb episodes.png", 
-       width = 8, height = 5)
+# ggsave("ratings of phineas and ferb episodes.png", 
+#        width = 8, height = 5)
 ```
 
 Can we safely assume IMDb ratings are normally distributed?
@@ -278,8 +280,8 @@ songs %>%
        x = "(for episodes with songs of that genre)",
        caption = "\nData from phineasandferb.fandom.com  |  Scraped and Visualized by @PhilliPhresh")
 
-ggsave("ratings of phineas and ferb episodes TIE fighter plot.png", 
-       width = 8, height = 5)
+# ggsave("ratings of phineas and ferb episodes TIE fighter plot.png",
+#        width = 8, height = 5)
 ```
 
 ```{r}
@@ -329,5 +331,11 @@ songs %>%
            size = 3, hjust = 0, lineheight = .8,
            label = "Last Day of Summer")
   
+```
+
+```{r include=FALSE}
+rmarkdown::render("Phineas and Ferb Data Visualizations.Rmd",
+                  output_format = "markdown_github",
+                  output_file = "README.md")
 ```
 
