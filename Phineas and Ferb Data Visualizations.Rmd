@@ -312,8 +312,22 @@ songs_I_like <-
 songs %>% 
   arrange(air_date) %>% 
   mutate(songs_I_really_like = if_else(song_title %in% songs_I_like, "I really like it", "It's okay")) %>% 
+  arrange(imdb_rating) %>% 
   ggplot(aes(air_date, imdb_rating)) +
   geom_point() +
-  gghighlight::gghighlight(songs_I_really_like == "I really like it")
+  gghighlight::gghighlight(songs_I_really_like == "I really like it") +
+  
+  annotate(geom = "label", x = lubridate::ymd("2010-01-01"), y = 7.1, 
+           size = 3, hjust = 0, lineheight = .8,
+           label = "Phineas and Ferb Musical Cliptastic\nCountdown Hosted by Kelly Osbourne") + 
+  
+  annotate(geom = "label", x = lubridate::ymd("2014-01-01"), y = 9.25, 
+           size = 3, hjust = 0, lineheight = .8,
+           label = "Act Your Age") +
+  
+  annotate(geom = "label", x = lubridate::ymd("2014-07-01"), y = 9.1, 
+           size = 3, hjust = 0, lineheight = .8,
+           label = "Last Day of Summer")
+  
 ```
 
