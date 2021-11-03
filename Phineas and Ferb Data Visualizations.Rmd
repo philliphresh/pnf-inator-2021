@@ -277,6 +277,9 @@ songs %>%
   labs(title = "The only genres with significantly different\nratings were Rock, Country, and Hip-Hop",
        x = "(for episodes with songs of that genre)",
        caption = "\nData from phineasandferb.fandom.com  |  Scraped and Visualized by @PhilliPhresh")
+
+ggsave("ratings of phineas and ferb episodes TIE fighter plot.png", 
+       width = 8, height = 5)
 ```
 
 ```{r}
@@ -291,9 +294,9 @@ songs_I_like <-
   "S'Winter",
   "Big Honkin' Hole in My Heart",
   "Ain't Got Rhythm",
-  "Snuck Your Way Right Into My Heart",
-  "Little Brother",
-  "Chains On Me",
+  "You Snuck Your Way Right Into My Heart",
+  "Little Brothers",
+  "Chains on Me",
   "Yodel Odel Obey Me",
   "Izzy's Got the Frizzies",
   "There's a Platypus Controlling Me",
@@ -301,15 +304,16 @@ songs_I_like <-
   "Aerial Area Rug",
   "Double Dutch Song",
   "Waggle Dance",
-  "In the Empire",	
+  "In the Empire",
   "When Tomorrow is This Morning Again",
   "O.W.C.A. Files",
   "My Undead Mummy")
 
 songs %>% 
   arrange(air_date) %>% 
-  mutate(songs_I_really_like = if_else(song_names %in% songs_I_like, "I really like it", "It's okay"))
+  mutate(songs_I_really_like = if_else(song_title %in% songs_I_like, "I really like it", "It's okay")) %>% 
   ggplot(aes(air_date, imdb_rating)) +
-  geom_point(aes(color = song_names %in% songs_I_like))
+  geom_point() +
+  gghighlight::gghighlight(songs_I_really_like == "I really like it")
 ```
 
