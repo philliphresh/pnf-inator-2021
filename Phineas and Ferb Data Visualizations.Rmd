@@ -199,3 +199,117 @@ ggsave("ratings of phineas and ferb episodes.png",
        width = 8, height = 5)
 ```
 
+Can we safely assume IMDb ratings are normally distributed?
+
+```{r}
+songs %>% 
+  distinct(ep_title, .keep_all = TRUE) %>% 
+  ggplot(aes(imdb_rating)) +
+  geom_density()
+```
+
+I would say yes!
+
+So now we can try a variation of the plot above only use a TIE Fighter plot instead of a lolipop plot.
+
+```{r}
+songs %>% 
+  mutate(genre = str_to_lower(genre)) %>% 
+  separate(genre, into = c("g1", "g2", "g3", "g4", "g5"),
+           sep = "[,/]") %>% 
+  pivot_longer(g1:g5, "col", values_to = "genre") %>% 
+  mutate(genre = str_trim(genre)) %>% 
+  filter(!is.na(genre)) %>% 
+  filter(!is.na(imdb_rating)) %>% 
+  # filter(genre == "pop") %>% #testing to see if group_by is working,
+  # I don't think it is
+  nest(data = -genre) %>% 
+  mutate(ci = map(data, ~ confintr::ci_quantile(x = pull(., imdb_rating)) %>% .$interval)) %>% 
+  unnest(data) %>% 
+  unnest(ci) %>% 
+  filter(ci != Inf & ci != -Inf) %>% 
+  mutate(column = row_number() %% 2) %>% 
+  pivot_wider(names_from = column, values_from = ci) %>% 
+  rename(lb = `1`, ub = `0`) %>% 
+  group_by(genre) %>% 
+  summarise(med = median(imdb_rating, na.rm = TRUE),
+            lb = median(lb, na.rm = TRUE),
+            ub = median(ub, na.rm = TRUE),
+            n = n()) %>% 
+  mutate(color = if_else(genre %in% c("country", "rock", "hip-hop"),
+                         "red", "orange")) %>% 
+  filter(n > 7) %>% 
+  mutate(genre = fct_reorder(genre, med)) %>% 
+  ggplot(aes(med, genre, fill = color)) +
+  geom_errorbar(aes(xmin = lb, xmax = ub)) + 
+  geom_point(aes(size = n), shape = 21) + 
+  
+  annotate("text", label = "lower bound", x = 8, y = 14, 
+           hjust = .5, family = "Graphite Std Bold") +
+  annotate("text", label = "median", x = 8.25, y = 14, 
+           hjust = .5, family = "Graphite Std Bold") +
+  annotate("text", label = "upper bound", x = 8.7, y = 14, 
+           hjust = .5, family = "Graphite Std Bold") +
+  
+  geom_curve(xend = 7.97, yend = 4, x = 7.9, y = 5, color = "black",
+             arrow = arrow(length = unit(0.03, "npc")), curvature = .2) + 
+  annotate(geom = "label", x = 7.6, y = 6.5, 
+           label = "Larger dots mean\nmore episodes with\nthat genre of song",
+           hjust = 0, lineheight = .8, family = "Graphite Std Bold",
+           fill = "#FFFEAE") + 
+  
+  guides(size = "none", fill = "none") +
+  theme_minimal() +
+  scale_fill_identity() + 
+  expand_limits(y = 15) +
+  scale_x_continuous(limits = c(7.6, 9), 
+                     breaks = c(seq(7.8, 8.6, .2), 8.84),
+                     labels = c("7.8", "8.0", "8.2", "8.4", "8.6", "Stars on IMDb")) +
+  theme(axis.title.y = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title.position = "plot",
+        plot.title = big_plot_text,
+        axis.text = small_plot_text,
+        axis.title = small_plot_text,
+        panel.grid.major.y = element_line(color = "#e0c69d"),
+        plot.background = element_rect(fill = "#ffeac9")) +
+  labs(title = "The only genres with significantly different\nratings were Rock, Country, and Hip-Hop",
+       x = "(for episodes with songs of that genre)",
+       caption = "\nData from phineasandferb.fandom.com  |  Scraped and Visualized by @PhilliPhresh")
+```
+
+```{r}
+songs_I_like <- 
+  c("When We Didn't Get Along",
+  "City of Love",
+  "Let's Take A Rocketship To Space",
+  "E.V.I.L. B.O.Y.S.",
+  "Busted",
+  "Flawless Girl",
+  "Disco Miniature Golfing Queen",
+  "S'Winter",
+  "Big Honkin' Hole in My Heart",
+  "Ain't Got Rhythm",
+  "Snuck Your Way Right Into My Heart",
+  "Little Brother",
+  "Chains On Me",
+  "Yodel Odel Obey Me",
+  "Izzy's Got the Frizzies",
+  "There's a Platypus Controlling Me",
+  "Dance Baby",
+  "Aerial Area Rug",
+  "Double Dutch Song",
+  "Waggle Dance",
+  "In the Empire",	
+  "When Tomorrow is This Morning Again",
+  "O.W.C.A. Files",
+  "My Undead Mummy")
+
+songs %>% 
+  arrange(air_date) %>% 
+  mutate(songs_I_really_like = if_else(song_names %in% songs_I_like, "I really like it", "It's okay"))
+  ggplot(aes(air_date, imdb_rating)) +
+  geom_point(aes(color = song_names %in% songs_I_like))
+```
+
