@@ -6,16 +6,79 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Testing README.Rmd file knitting as github_document .md file
+# Aren't you a little old to be watching Phineas and Ferb?
 
-This is body text.
+Yes, yes I am. I love Phineas and Ferb. From the jokes to the songs to the inators, everything about it brings me joy. Going through a recent watch on Disney+ inspired me to analyze Phineas and Ferb data, specifically, song data.
 
-## Including Plots
+# Where did you get the data?
+
+While making the plots (see below) was the more exciting part, gathering the data was definitely the more challenging and time-consuming part of this project. After looking around various websites, I ended up deciding to web scrape from <https://phineasandferb.fandom.com/wiki/Phineas_and_Ferb_Wiki>. To pull IMDB ratings, I obviously also had to scrape data from <https://www.imdb.com/title/tt0852863/episodes?season=1>.
 
 You can also embed plots, for example:
 
-```{r, echo=FALSE}
-
+```{r, include=FALSE}
+library(tidyverse)
+library(showtext)
+library(lubridate)
+library(ggtext)
 ```
 
+```{r, include=FALSE}
+songs <- read_csv("pnf_songs.csv")
+```
 
+```{r, include=FALSE}
+small_plot_text <- element_text(family = "Graphite Std Bold", 
+                                 size = 15,
+                                 color = "black")
+
+big_plot_text <- element_text(face = "bold", 
+                                  family = "Ferbtastic",
+                                  size = 30)
+```
+
+# What are the most common genres?
+
+The following plot shows the top most common song genres in Phineas and Ferb and their prevelance among different seasons.
+
+```{r, echo=FALSE}
+songs %>% 
+  mutate(genre = str_to_lower(genre)) %>% 
+  separate(genre, into = c("g1", "g2", "g3", "g4", "g5"),
+           sep = "[,/]") %>% 
+  pivot_longer(g1:g5, "col", values_to = "genre") %>% 
+  mutate(genre = str_trim(genre)) %>% 
+  filter(!is.na(genre)) %>% 
+  mutate(season = substr(pc, 1, 1)) %>% 
+  group_by(genre) %>% 
+  mutate(genre_count = n()) %>% 
+  filter(genre_count > 10) %>% 
+  count(genre, season, sort = TRUE) %>% 
+  na.omit(season) %>% 
+  group_by(genre) %>% 
+  mutate(genre_count = sum(n)) %>% 
+  ungroup() %>% 
+  mutate(genre = fct_reorder(genre, genre_count)) %>% 
+  mutate(season = case_when(season == "M" ~ "movie", 
+                            TRUE ~ season)) %>% 
+  mutate(season = fct_relevel(season, "movie", "4", "3", "2", "1")) %>% 
+  ggplot(aes(y = genre, x = n, fill = season)) + 
+  geom_col(color = "black") + 
+  theme_minimal() + 
+  scale_fill_brewer(palette = "YlOrRd", 
+                    guide = guide_legend(reverse = TRUE)) + 
+  labs(title = "Pop, Rock, and Show Tunes are the most\ncommon genre of P&F songs",
+       caption = "\nData from phineasandferb.fandom.com  |  Scraped and Visualized by @PhilliPhresh") + 
+  theme(axis.title = element_blank(), 
+        panel.grid.major = element_blank(), 
+        plot.title.position = "plot",
+        plot.background = element_rect(fill = "#ffeac9"),
+        plot.title = big_plot_text,
+        axis.text = small_plot_text,
+        legend.text = small_plot_text,
+        legend.title = small_plot_text, 
+        plot.caption = element_text(hjust = 1),
+        plot.caption.position = "plot", 
+        legend.direction = "horizontal", 
+        legend.position = c(.65, .15))
+```
