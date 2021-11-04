@@ -49,7 +49,7 @@ big_plot_text <- element_text(face = "bold",
 
 The following plot shows the top most common song genres in Phineas and Ferb and their prevalence among different seasons. Even though this is probably the most basic question to ask about the songs, I thought it was interesting because even Dan Povenmire himself might not have an idea of just how many pop and rock songs there are (or how few jazz songs). I also don't mean to imply that there needs to be an equal distribution of genres, I believe the song should fit the context of the episode around it.
 
-```{r, echo=FALSE, warning=FALSE, fig.width=8}
+```{r, echo=FALSE, warning=FALSE, fig.width=8, dpi=300}
 songs %>% 
   mutate(genre = str_to_lower(genre)) %>% 
   separate(genre, into = c("g1", "g2", "g3", "g4", "g5"),
