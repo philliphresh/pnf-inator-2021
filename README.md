@@ -11,10 +11,10 @@ specifically, song data.
 While making the plots (see below) was the more exciting part, gathering
 the data was definitely the more challenging and time-consuming part of
 this project. After looking around various websites, I ended up deciding
-to web scrape from the \[Phineas and Ferb Fandom
-page\]<https://phineasandferb.fandom.com/wiki/Phineas_and_Ferb_Wiki>. To
+to web scrape from the [Phineas and Ferb Fandom
+page](https://phineasandferb.fandom.com/wiki/Phineas_and_Ferb_Wiki). To
 pull IMDB ratings, I obviously also had to scrape data from
-\[IMDb\]<https://www.imdb.com/title/tt0852863/episodes?season=1>.
+[IMDb](https://www.imdb.com/title/tt0852863/episodes?season=1).
 
 Since Fandom is a Wiki site, the webpages scraped were not always in a
 consistent format and some assumptions needed to be made. The three
