@@ -2,9 +2,9 @@
 title: "Phineas and Ferb Data Visualizations"
 author: "Phillip Sanderell"
 date: "10/31/2021"
-output: 
-  md_document:
-    variant: markdown_github
+output:
+  md_document: default
+  github_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -16,6 +16,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(tidyverse)
 library(showtext)
+library(lubridate)
+library(ggtext)
 ```
 
 # Import data
@@ -314,28 +316,52 @@ songs_I_like <-
 songs %>% 
   arrange(air_date) %>% 
   mutate(songs_I_really_like = if_else(song_title %in% songs_I_like, "I really like it", "It's okay")) %>% 
-  arrange(imdb_rating) %>% 
+  mutate(fill = if_else(songs_I_really_like == "It's okay", "#FED267", "#F3390E"),
+         size = if_else(songs_I_really_like == "It's okay", 2.5, 4)) %>% 
+  mutate(song_title = fct_reorder(song_title, songs_I_really_like)) %>% 
   ggplot(aes(air_date, imdb_rating)) +
-  geom_point() +
-  gghighlight::gghighlight(songs_I_really_like == "I really like it") +
+  geom_point(aes(fill = fill, size = size), shape = 21) +
+  geom_point(aes(fill = fill, size = size), shape = 21,
+             data = . %>% filter(songs_I_really_like == "I really like it")) +
   
-  annotate(geom = "label", x = lubridate::ymd("2010-01-01"), y = 7.1, 
-           size = 3, hjust = 0, lineheight = .8,
+  geom_curve(xend = ymd("2013-05-15"), yend = 6.9,
+                x = ymd("2013-01-01"), y = 7, curvature = .3) +
+  annotate(geom = "label", x = ymd("2010-05-01"), y = 7.15, 
+           size = 3, hjust = 0, lineheight = .8, family = "Graphite Std Bold", fill = "#FFFEAE",
            label = "Phineas and Ferb Musical Cliptastic\nCountdown Hosted by Kelly Osbourne") + 
   
-  annotate(geom = "label", x = lubridate::ymd("2014-01-01"), y = 9.25, 
-           size = 3, hjust = 0, lineheight = .8,
+  geom_curve(xend = ymd("2015-01-15"), yend = 9.4, 
+                x = ymd("2014-12-01"), y = 9.3, curvature = -.3) +
+  annotate(geom = "label", x = ymd("2014-01-01"), y = 9.25, 
+           size = 3, hjust = 0, lineheight = .8, family = "Graphite Std Bold", fill = "#FFFEAE",
            label = "Act Your Age") +
   
-  annotate(geom = "label", x = lubridate::ymd("2014-07-01"), y = 9.1, 
-           size = 3, hjust = 0, lineheight = .8,
-           label = "Last Day of Summer")
+  geom_curve(xend = ymd("2015-08-01"), yend = 9.4,
+                x = ymd("2015-12-01"), y = 9.1, curvature = .4) +
+  annotate(geom = "label", x = ymd("2014-07-01"), y = 9.05, 
+           size = 3, hjust = 0, lineheight = .8, family = "Graphite Std Bold", fill = "#FFFEAE",
+           label = "Last Day of Summer") +
   
+  scale_size_identity() + 
+  scale_fill_identity() + 
+  guides(size = "none", fill = "none") +
+  theme_minimal() + 
+  theme(panel.grid.minor = element_blank(),
+        plot.title.position = "plot",
+        plot.title = ggtext::element_markdown(family = "Ferbtastic", face = "bold", size = 30),
+        axis.text = small_plot_text,
+        axis.title = small_plot_text,
+        panel.grid.major = element_line(color = "#e0c69d"),
+        plot.background = element_rect(fill = "#ffeac9")) + 
+  labs(x = "Air Date", 
+       y = "IMDB Rating",
+       title = "I don't see any relationship between <b style='color:#F3390E'>songs I love</b><br>and air date or IMDb rating",
+       caption = "\nData from phineasandferb.fandom.com  |  Scraped and Visualized by @PhilliPhresh")
 ```
 
 ```{r include=FALSE}
-rmarkdown::render("Phineas and Ferb Data Visualizations.Rmd",
-                  output_format = "markdown_github",
-                  output_file = "README.md")
+# rmarkdown::render("Phineas and Ferb Data Visualizations.Rmd",
+#                   output_format = "github_document",
+#                   output_file = "README(name change try to see if file is created.md")
 ```
 
