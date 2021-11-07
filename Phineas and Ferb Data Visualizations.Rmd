@@ -142,9 +142,68 @@ songs %>%
 #        width = 8, height = 5)
 ```
 
+Trying different way to display the same data
+
+```{r, echo=FALSE, warning=FALSE, fig.width=8, dpi=600}
+songs %>% 
+  mutate(genre = str_to_lower(genre)) %>% 
+  mutate(length = str_extract(length, "[:digit:]+[:punct:][:digit:]+")) %>% 
+  mutate(length = paste0("00:0", length) %>% parse_time()) %>% 
+  mutate(season = substr(pc, 1, 1)) %>% 
+  mutate(season = case_when(season == "1" ~ "Season 1",
+                            season == "M" ~ "Movies", 
+                            TRUE ~ season)) %>% 
+  filter(!is.na(season)) %>% 
+  mutate(season = fct_relevel(season, "Season 1", "2", "3", "4", "Movies")) %>%
+  
+  ggplot(aes(length, y = 0, fill = season)) +
+  geom_violin(draw_quantiles = c(.25, .5, .75),
+              kernel = "triangular", alpha = .9) + 
+  facet_grid(rows = vars(season)) + 
+  coord_cartesian(ylim = c(0, .5), expand = FALSE) + 
+  guides(fill = "none") +
+  geom_text(label = "25th", x = 1.5*60, y = .25, hjust = 0, family = "Graphite Std Bold",
+            data = tibble(season = "Movies") %>% 
+                     mutate(season = fct_relevel(season, "Season 1", "2", "3", "4", "Movies"))) +
+  geom_text(label = "50th", x = 1.75*60, y = .25, hjust = 0, family = "Graphite Std Bold",
+            data = tibble(season = "Movies") %>% 
+                     mutate(season = fct_relevel(season, "Season 1", "2", "3", "4", "Movies"))) +
+  geom_text(label = "75th percentile", x = 2.15*60, y = .25, hjust = 0, family = "Graphite Std Bold",
+            data = tibble(season = "Movies") %>% 
+                     mutate(season = fct_relevel(season, "Season 1", "2", "3", "4", "Movies"))) +
+  geom_curve(xend = 1.97*60, yend = .35, x = 2.15*60, y = .3, curvature = .4,
+             arrow = arrow(length = unit(0.03, "npc")),
+             data = tibble(season = "Movies") %>% 
+                     mutate(season = fct_relevel(season, "Season 1", "2", "3", "4", "Movies"))) +
+  geom_text(aes(label = season, x = 4.35*60, y = .2),
+            hjust = 1, family = "Graphite Std Bold", size = 6,
+            data = tibble(season = c("Season 1", "2", "3", "4", "Movies")) %>% 
+                     mutate(season = fct_relevel(season, "Season 1", "2", "3", "4", "Movies"))) +
+
+
+  scale_x_continuous(breaks = c(30, 1*60, 2*60, 3*60),
+                     labels = c("30 sec.", "1 min", "2 mins", "3 mins")) +
+  scale_fill_brewer(palette = "YlOrRd", 
+                    guide =  NULL, 
+                    direction = -1) + 
+  theme_minimal() +
+  theme(axis.title = element_blank(),
+        axis.text.y = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = big_plot_text,
+        axis.text.x = small_plot_text,
+        strip.text = element_blank(),
+        plot.background = element_rect(fill = "#ffeac9"),
+        panel.grid.major.x = element_line(color = "#e0c69d")) +
+  labs(title = "Length of songs in P&F seem to get longer\nand more predictible over time",
+       caption = "\nData from phineasandferb.fandom.com  |  Scraped and Visualized by @PhilliPhresh")
+```
+
+
 Does the IMDb rating distribution differ by genre?
 
-```{r}
+```{r, echo=FALSE, warning=FALSE, fig.width=8, dpi=600}
 songs %>% 
   mutate(genre = str_to_lower(genre)) %>% 
   separate(genre, into = c("g1", "g2", "g3", "g4", "g5"),
@@ -286,7 +345,7 @@ songs %>%
 #        width = 8, height = 5)
 ```
 
-```{r}
+```{r, echo=FALSE, warning=FALSE, fig.width=8, dpi=600}
 songs_I_like <- 
   c("When We Didn't Get Along",
   "City of Love",
@@ -351,11 +410,13 @@ songs %>%
         plot.title = ggtext::element_markdown(family = "Ferbtastic", face = "bold", size = 30),
         axis.text = small_plot_text,
         axis.title = small_plot_text,
+        axis.title.y = element_text(margin = margin(r = 10)),
+        axis.title.x = element_text(margin = margin(t = 10)),
         panel.grid.major = element_line(color = "#e0c69d"),
         plot.background = element_rect(fill = "#ffeac9")) + 
   labs(x = "Air Date", 
        y = "IMDB Rating",
-       title = "I don't see any relationship between <b style='color:#F3390E'>songs I love</b><br>and air date or IMDb rating",
+       title = "I don't see a relationship between <b style='color:#F3390E'>songs I love</b><br>and air date or IMDb rating",
        caption = "\nData from phineasandferb.fandom.com  |  Scraped and Visualized by @PhilliPhresh")
 ```
 

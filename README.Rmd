@@ -8,13 +8,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Aren't you a little old to be watching Phineas and Ferb?
 
-Yes, yes I am. I love Phineas and Ferb. From the jokes to the songs to the inators, everything about it brings me joy. Going through a recent watch on Disney+ inspired me to analyze Phineas and Ferb data, specifically, song data.
+Yes, yes I am. I love Phineas and Ferb. From the jokes to the songs to the inators, everything about it brings me joy. Going through a recent watch on Disney+ inspired me to analyze Phineas and Ferb data, specifically, specifically focusing on the music in the show.
 
-# Where did you get the data?
+# Hey, where's the data from?
 
 While making the plots (see below) was the more exciting part, gathering the data was definitely the more challenging and time-consuming part of this project. After looking around various websites, I ended up deciding to web scrape from the [Phineas and Ferb Fandom page](https://phineasandferb.fandom.com/wiki/Phineas_and_Ferb_Wiki). To pull IMDB ratings, I obviously also had to scrape data from [IMDb](https://www.imdb.com/title/tt0852863/episodes?season=1).
 
-Since Fandom is a Wiki site, the webpages scraped were not always in a consistent format and some assumptions needed to be made. The three largest assumptions made were:
+Since Fandom is a Wiki site, the webpages scraped were not always in a consistent format and some assumptions needed to be made. Additionally, due to IMDb organization, an assumption about episode ratings needed to be made. The assumptions are as follows:
 
 1.  The first episode to be listed in a song's narrative description is the episode it first aired in.
 2.  All the data taken from the Fandom Wiki is correct. For the most part I think this is a safe assumption but genres could be misclassified, episodes could be mislabeled, etc.
@@ -47,7 +47,7 @@ big_plot_text <- element_text(face = "bold",
 
 ## What are the most common genres?
 
-The following plot shows the top most common song genres in Phineas and Ferb and their prevalence among different seasons. Even though this is probably the most basic question to ask about the songs, I thought it was interesting because even Dan Povenmire himself might not have an idea of just how many pop and rock songs there are (or how few jazz songs). I also don't mean to imply that there needs to be an equal distribution of genres, I believe the song should fit the context of the episode around it.
+The following plot shows the top most common song genres in Phineas and Ferb and their prevalence among different seasons. Even though this is probably the most basic question to ask about the songs, I thought it was interesting because even Dan Povenmire himself might not have an idea of just how many pop and rock songs there are (or how few jazz songs). I also don't mean to imply that there needs to be an equal distribution of genres, I believe the song should fit the context of the episode around it. I am only showing the top 12 genres below in order to keep the visualization clean and focused.
 
 ```{r, echo=FALSE, warning=FALSE, fig.width=8, dpi=600}
 songs %>% 
@@ -67,16 +67,17 @@ songs %>%
   mutate(genre_count = sum(n)) %>% 
   ungroup() %>% 
   mutate(genre = fct_reorder(genre, genre_count)) %>% 
-  mutate(season = case_when(season == "M" ~ "movie", 
+  mutate(season = case_when(season == "M" ~ "Movie", 
                             TRUE ~ season)) %>% 
-  mutate(season = fct_relevel(season, "movie", "4", "3", "2", "1")) %>% 
+  mutate(season = fct_relevel(season, "Movie", "4", "3", "2", "1")) %>% 
   ggplot(aes(y = genre, x = n, fill = season)) + 
   geom_col(color = "black") + 
   theme_minimal() + 
-  scale_fill_brewer(palette = "YlOrRd", 
-                    guide = guide_legend(reverse = TRUE)) + 
+  scale_fill_brewer(palette = "YlOrRd") + 
   labs(title = "Pop, Rock, and Show Tunes are the most\ncommon genre of P&F songs",
        caption = "\nData from phineasandferb.fandom.com  |  Scraped and Visualized by @PhilliPhresh") + 
+  guides(fill = guide_legend(title = "Season",
+                             reverse = TRUE)) +
   theme(axis.title = element_blank(), 
         panel.grid.major = element_blank(), 
         plot.title.position = "plot",
@@ -90,3 +91,257 @@ songs %>%
         legend.direction = "horizontal", 
         legend.position = c(.65, .15))
 ```
+
+I find it interesting that hip-hop and rap are pretty infrequent until season 4 and not present in any movies. Season 4 probably has the most uniform variety in musical genres. This genre prevalence plot is especially interesting when compared to the plot below that compares IMDb ratings.
+
+## How long are the songs?
+
+The next plot show the distribution of song lengths over each season. The songs on the far left of the plot are most likely all jingles (e.g., Doofenshmirtz's Quality Bratwurst).
+
+```{r, echo=FALSE, warning=FALSE, fig.width=8, dpi=600}
+songs %>% 
+  mutate(genre = str_to_lower(genre)) %>% 
+  mutate(length = str_extract(length, "[:digit:]+[:punct:][:digit:]+")) %>% 
+  mutate(length = paste0("00:0", length) %>% parse_time()) %>% 
+  mutate(season = substr(pc, 1, 1)) %>% 
+  mutate(season = case_when(season == "1" ~ "Season 1",
+                            season == "M" ~ "Movies", 
+                            TRUE ~ season)) %>% 
+  filter(!is.na(season)) %>% 
+  mutate(season = fct_relevel(season, "Season 1", "2", "3", "4", "Movies")) %>%
+  
+  ggplot(aes(length, y = 0, fill = season)) +
+  geom_violin(draw_quantiles = c(.25, .5, .75),
+              kernel = "triangular", alpha = .9) + 
+  facet_grid(rows = vars(season)) + 
+  coord_cartesian(ylim = c(0, .5), expand = FALSE) + 
+  guides(fill = "none") +
+  geom_text(label = "25th", x = 1.5*60, y = .25, hjust = 0, family = "Graphite Std Bold",
+            data = tibble(season = "Movies") %>% 
+                     mutate(season = fct_relevel(season, "Season 1", "2", "3", "4", "Movies"))) +
+  geom_text(label = "50th", x = 1.75*60, y = .25, hjust = 0, family = "Graphite Std Bold",
+            data = tibble(season = "Movies") %>% 
+                     mutate(season = fct_relevel(season, "Season 1", "2", "3", "4", "Movies"))) +
+  geom_text(label = "75th percentile", x = 2.15*60, y = .25, hjust = 0, family = "Graphite Std Bold",
+            data = tibble(season = "Movies") %>% 
+                     mutate(season = fct_relevel(season, "Season 1", "2", "3", "4", "Movies"))) +
+  geom_curve(xend = 1.97*60, yend = .35, x = 2.15*60, y = .3, curvature = .4,
+             arrow = arrow(length = unit(0.03, "npc")),
+             data = tibble(season = "Movies") %>% 
+                     mutate(season = fct_relevel(season, "Season 1", "2", "3", "4", "Movies"))) +
+  geom_text(aes(label = season, x = 4.35*60, y = .2),
+            hjust = 1, family = "Graphite Std Bold", size = 6,
+            data = tibble(season = c("Season 1", "2", "3", "4", "Movies")) %>% 
+                     mutate(season = fct_relevel(season, "Season 1", "2", "3", "4", "Movies"))) +
+
+
+  scale_x_continuous(breaks = c(30, 1*60, 2*60, 3*60),
+                     labels = c("30 sec.", "1 min", "2 mins", "3 mins")) +
+  scale_fill_brewer(palette = "YlOrRd", 
+                    guide =  NULL, 
+                    direction = -1) + 
+  theme_minimal() +
+  theme(axis.title = element_blank(),
+        axis.text.y = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title = big_plot_text,
+        axis.text.x = small_plot_text,
+        strip.text = element_blank(),
+        plot.background = element_rect(fill = "#ffeac9"),
+        panel.grid.major.x = element_line(color = "#e0c69d")) +
+  labs(title = "Length of songs in P&F seem to get longer\nand more predictible over time",
+       caption = "\nData from phineasandferb.fandom.com  |  Scraped and Visualized by @PhilliPhresh")
+```
+
+The first notable observation from the plot above is that movies the movies tend to have longer songs—this makes sense given that movies will have more time to burn. The next, more subtle observation is that the median song length increases over time and the variability of song length decreases over time. Essentially, the songwriters of the show "found what works" and ended up writing songs around one minute more often.
+
+## IMDb Ratings
+
+> ["In a world and business that is awash with data, it is tempting to use data to answer all of our questions, including creative questions. I urge all of you not to do that."](https://wdwnt.com/2021/10/bob-iger-warns-disney-executives-to-avoid-letting-data-influence-creative-decisions/)
+>
+> -Bob Iger, former CEO of The Walt Disney Company
+
+It is important to preface the following chart with my current view on data-driven creative decisions. I believe stakeholders should not discount or ignore the use of data in making decisions, even if creative but that does not mean data should be the only consideration. There may be times that an analysis of data suggests a different answer to a question than someone's creative intuition and when those times come it is important to consider all facts and circumstances.
+
+All that being said, the plot below examines IMDb ratings of Phineas and Ferb episodes with songs of various genres.
+
+```{r, echo=FALSE, warning=FALSE, results="hide", fig.width=8, dpi=600}
+songs %>% 
+  mutate(genre = str_to_lower(genre)) %>% 
+  separate(genre, into = c("g1", "g2", "g3", "g4", "g5"),
+           sep = "[,/]") %>% 
+  pivot_longer(g1:g5, "col", values_to = "genre") %>% 
+  mutate(genre = str_trim(genre)) %>% 
+  filter(!is.na(genre)) %>% 
+  filter(!is.na(imdb_rating)) %>% 
+  nest(data = -genre) %>% 
+  mutate(ci = map(data, ~ confintr::ci_quantile(x = pull(., imdb_rating)) %>% .$interval)) %>% 
+  unnest(data) %>% 
+  unnest(ci) %>% 
+  filter(ci != Inf & ci != -Inf) %>% 
+  mutate(column = row_number() %% 2) %>% 
+  pivot_wider(names_from = column, values_from = ci) %>% 
+  rename(lb = `1`, ub = `0`) %>% 
+  group_by(genre) %>% 
+  summarise(med = median(imdb_rating, na.rm = TRUE),
+            lb = median(lb, na.rm = TRUE),
+            ub = median(ub, na.rm = TRUE),
+            n = n(),
+            .groups = "keep") %>% 
+  ungroup() %>% 
+  mutate(color = if_else(genre %in% c("country", "rock", "hip-hop"),
+                         "red", "orange")) %>% 
+  filter(n > 7) %>% 
+  mutate(genre = fct_reorder(genre, med)) %>% 
+  ggplot(aes(med, genre, fill = color)) +
+  geom_errorbar(aes(xmin = lb, xmax = ub)) + 
+  geom_point(aes(size = n), shape = 21) + 
+  
+  annotate("text", label = "lower bound", x = 8, y = 14, 
+           hjust = .5, family = "Graphite Std Bold") +
+  annotate("text", label = "median", x = 8.25, y = 14, 
+           hjust = .5, family = "Graphite Std Bold") +
+  annotate("text", label = "upper bound", x = 8.7, y = 14, 
+           hjust = .5, family = "Graphite Std Bold") +
+  
+  geom_curve(xend = 7.97, yend = 4, x = 7.9, y = 5, color = "black",
+             arrow = arrow(length = unit(0.03, "npc")), curvature = .2) + 
+  annotate(geom = "label", x = 7.6, y = 6.5, 
+           label = "Larger dots mean\nmore episodes with\nthat genre of song",
+           hjust = 0, lineheight = .8, family = "Graphite Std Bold",
+           fill = "#FFFEAE") + 
+  
+  guides(size = "none", fill = "none") +
+  theme_minimal() +
+  scale_fill_identity() + 
+  expand_limits(y = 15) +
+  scale_x_continuous(limits = c(7.6, 9), 
+                     breaks = c(seq(7.8, 8.6, .2), 8.84),
+                     labels = c("7.8", "8.0", "8.2", "8.4", "8.6", "Stars on IMDb")) +
+  theme(axis.title.y = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor = element_blank(),
+        plot.title.position = "plot",
+        plot.title = big_plot_text,
+        axis.text = small_plot_text,
+        axis.title = small_plot_text,
+        panel.grid.major.y = element_line(color = "#e0c69d"),
+        plot.background = element_rect(fill = "#ffeac9")) +
+  labs(title = "The only genres with significantly different\nratings were Rock, Country, and Hip-Hop",
+       x = "(for episodes with songs of that genre)",
+       caption = "\nData from phineasandferb.fandom.com & IMDb.com  |  Scraped and Visualized by @PhilliPhresh")
+```
+
+For the statistically-unprepared, the black bars on the plot above show "confidence intervals" for the median IMDb rating on each genre: if the horizontal line overlaps with another, there is not enough data to suggest the different genres have statistically significant differences in median IMDb rating. The main takeaway here is that we can be pretty confident that episodes with hip-hop songs will rate lower than episodes with rock or country songs. Of course, the show would get dull fast if all songs were rock in a misguided attempt to maximize ratings.
+
+## Can my personal taste predict gold?
+
+While there are hundreds of songs that I like in the series, there are some that I love (and some that reference a gelatin monster). The plot below shows episode rankings and highlights episodes with songs that I could remember really enjoying just by reading the list of songs names. In no particular order, those songs are:
+
+* When We Didn't Get Along
+* City of Love
+* Let's Take A Rocketship To Space
+* E.V.I.L. B.O.Y.S.
+* Busted
+* Flawless Girl
+* Disco Miniature Golfing Queen
+* S'Winter
+* Big Honkin' Hole in My Heart
+* Ain't Got Rhythm
+* You Snuck Your Way Right Into My Heart
+* Little Brothers
+* Chains on Me
+* Yodel Odel Obey Me
+* Izzy's Got the Frizzies
+* There's a Platypus Controlling Me
+* Dance Baby
+* Aerial Area Rug
+* Double Dutch Song
+* Waggle Dance
+* In the Empire
+* When Tomorrow is This Morning Again
+* O.W.C.A. Files
+* My Undead Mummy
+
+
+```{r, echo=FALSE, warning=FALSE, fig.width=8, dpi=600}
+songs_I_like <- 
+  c("When We Didn't Get Along",
+  "City of Love",
+  "Let's Take A Rocketship To Space",
+  "E.V.I.L. B.O.Y.S.",
+  "Busted",
+  "Flawless Girl",
+  "Disco Miniature Golfing Queen",
+  "S'Winter",
+  "Big Honkin' Hole in My Heart",
+  "Ain't Got Rhythm",
+  "You Snuck Your Way Right Into My Heart",
+  "Little Brothers",
+  "Chains on Me",
+  "Yodel Odel Obey Me",
+  "Izzy's Got the Frizzies",
+  "There's a Platypus Controlling Me",
+  "Dance Baby",
+  "Aerial Area Rug",
+  "Double Dutch Song",
+  "Waggle Dance",
+  "In the Empire",
+  "When Tomorrow is This Morning Again",
+  "O.W.C.A. Files",
+  "My Undead Mummy")
+
+songs %>% 
+  arrange(air_date) %>% 
+  mutate(songs_I_really_like = if_else(song_title %in% songs_I_like, "I really like it", "It's okay")) %>% 
+  mutate(fill = if_else(songs_I_really_like == "It's okay", "#FED267", "#F3390E"),
+         size = if_else(songs_I_really_like == "It's okay", 2.5, 4)) %>% 
+  mutate(song_title = fct_reorder(song_title, songs_I_really_like)) %>% 
+  ggplot(aes(air_date, imdb_rating)) +
+  geom_point(aes(fill = fill, size = size), shape = 21) +
+  geom_point(aes(fill = fill, size = size), shape = 21,
+             data = . %>% filter(songs_I_really_like == "I really like it")) +
+  
+  geom_curve(xend = ymd("2013-05-15"), yend = 6.9,
+                x = ymd("2013-01-01"), y = 7, curvature = .3) +
+  annotate(geom = "label", x = ymd("2010-05-01"), y = 7.15, 
+           size = 3, hjust = 0, lineheight = .8, family = "Graphite Std Bold", fill = "#FFFEAE",
+           label = "Phineas and Ferb Musical Cliptastic\nCountdown Hosted by Kelly Osbourne") + 
+  
+  geom_curve(xend = ymd("2015-01-15"), yend = 9.4, 
+                x = ymd("2014-12-01"), y = 9.3, curvature = -.3) +
+  annotate(geom = "label", x = ymd("2014-01-01"), y = 9.25, 
+           size = 3, hjust = 0, lineheight = .8, family = "Graphite Std Bold", fill = "#FFFEAE",
+           label = "Act Your Age") +
+  
+  geom_curve(xend = ymd("2015-08-01"), yend = 9.4,
+                x = ymd("2015-12-01"), y = 9.1, curvature = .4) +
+  annotate(geom = "label", x = ymd("2014-07-01"), y = 9.05, 
+           size = 3, hjust = 0, lineheight = .8, family = "Graphite Std Bold", fill = "#FFFEAE",
+           label = "Last Day of Summer") +
+  
+  scale_size_identity() + 
+  scale_fill_identity() + 
+  guides(size = "none", fill = "none") +
+  theme_minimal() + 
+  theme(panel.grid.minor = element_blank(),
+        plot.title.position = "plot",
+        plot.title = ggtext::element_markdown(family = "Ferbtastic", face = "bold", size = 30),
+        axis.text = small_plot_text,
+        axis.title = small_plot_text,
+        axis.title.y = element_text(margin = margin(r = 10)),
+        axis.title.x = element_text(margin = margin(t = 10)),
+        panel.grid.major = element_line(color = "#e0c69d"),
+        plot.background = element_rect(fill = "#ffeac9")) + 
+  labs(x = "Air Date", 
+       y = "IMDB Rating",
+       title = "I don't see a relationship between <b style='color:#F3390E'>songs I love</b><br>and air date or IMDb rating",
+       caption = "\nData from phineasandferb.fandom.com  |  Scraped and Visualized by @PhilliPhresh")
+```
+
+Looks like I might need to read [_Words with Music_](https://books.google.com/books/about/Words_with_Music.html?id=hRb8H-kDXcoC) again. Or on the contrary, perhaps my taste for lower ranking episodes just proves my love for the show. I'll go with both.
+
+# The 104th day of Summer
+
+While there is still a lot more I could explore with this Phineas and Ferb data, I am stopping here for now. So "oh, there you are Perry" and whatnot. To any other fans reading this, feel free to reach out with any questions or comments you have on the analysis. I'd love to discuss!
