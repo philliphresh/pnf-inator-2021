@@ -29,6 +29,7 @@ library(tidyverse)
 library(showtext)
 library(lubridate)
 library(ggtext)
+library(infer)
 ```
 
 ```{r, include=FALSE}
@@ -167,7 +168,26 @@ It is important to preface the following chart with my current view on data-driv
 All that being said, the plot below examines IMDb ratings of Phineas and Ferb episodes with songs of various genres.
 
 ```{r, echo=FALSE, warning=FALSE, results="hide", fig.width=8, dpi=600}
-songs %>% 
+calc_imdb_ci <- function(df) {
+  df %>% 
+    infer::specify(response = imdb_rating) %>%
+    infer::generate(reps = 1000, type = "bootstrap") %>%
+    infer::calculate(stat = "median") %>%
+    infer::get_ci()
+}
+
+calc_imdb_med <- function(df) {
+  df %>% 
+    infer::specify(response = imdb_rating) %>%
+    infer::generate(reps = 1000, type = "bootstrap") %>%
+    infer::calculate(stat = "median") %>%
+    summarise(med = median(stat))
+}
+
+# Calculate boot strap confidence intervals
+set.seed(104)
+imdb_ci_data <- 
+  songs %>% 
   mutate(genre = str_to_lower(genre)) %>% 
   separate(genre, into = c("g1", "g2", "g3", "g4", "g5"),
            sep = "[,/]") %>% 
@@ -175,34 +195,30 @@ songs %>%
   mutate(genre = str_trim(genre)) %>% 
   filter(!is.na(genre)) %>% 
   filter(!is.na(imdb_rating)) %>% 
-  nest(data = -genre) %>% 
-  mutate(ci = map(data, ~ confintr::ci_quantile(x = pull(., imdb_rating)) %>% .$interval)) %>% 
-  unnest(data) %>% 
-  unnest(ci) %>% 
-  filter(ci != Inf & ci != -Inf) %>% 
-  mutate(column = row_number() %% 2) %>% 
-  pivot_wider(names_from = column, values_from = ci) %>% 
-  rename(lb = `1`, ub = `0`) %>% 
-  group_by(genre) %>% 
-  summarise(med = median(imdb_rating, na.rm = TRUE),
-            lb = median(lb, na.rm = TRUE),
-            ub = median(ub, na.rm = TRUE),
-            n = n(),
-            .groups = "keep") %>% 
-  ungroup() %>% 
-  mutate(color = if_else(genre %in% c("country", "rock", "hip-hop"),
-                         "red", "orange")) %>% 
-  filter(n > 7) %>% 
+  mutate(genre = fct_lump_min(genre, 8)) %>% 
+  nest(-genre) %>% 
+  mutate(ci = map(data, ~ calc_imdb_ci(.x)),
+         med = map(data, ~ calc_imdb_med(.x)),
+         n = map(data, ~ .x %>% summarise(n = n()))) %>% 
+  unnest(ci, med, n) %>% 
+  select(-data)
+
+# Plot data
+imdb_ci_data %>% 
+  mutate(color = if_else(genre %in% c("country", "rock", "hip-hop", "disco"),
+                         "red", "orange")) %>%
   mutate(genre = fct_reorder(genre, med)) %>% 
+  filter(genre != "Other") %>% 
+  
   ggplot(aes(med, genre, fill = color)) +
-  geom_errorbar(aes(xmin = lb, xmax = ub)) + 
+  geom_errorbar(aes(xmin = lower_ci, xmax = upper_ci)) + 
   geom_point(aes(size = n), shape = 21) + 
   
   annotate("text", label = "lower bound", x = 8, y = 14, 
            hjust = .5, family = "Graphite Std Bold") +
   annotate("text", label = "median", x = 8.25, y = 14, 
            hjust = .5, family = "Graphite Std Bold") +
-  annotate("text", label = "upper bound", x = 8.7, y = 14, 
+  annotate("text", label = "upper bound", x = 8.6, y = 14, 
            hjust = .5, family = "Graphite Std Bold") +
   
   geom_curve(xend = 7.97, yend = 4, x = 7.9, y = 5, color = "black",
@@ -228,12 +244,12 @@ songs %>%
         axis.title = small_plot_text,
         panel.grid.major.y = element_line(color = "#e0c69d"),
         plot.background = element_rect(fill = "#ffeac9")) +
-  labs(title = "The only genres with significantly different\nratings were Rock, Country, and Hip-Hop",
+  labs(title = "It is more than just random chance that Rock and\nCountry rate higher than Hip-Hop and Disco",
        x = "(for episodes with songs of that genre)",
        caption = "\nData from phineasandferb.fandom.com & IMDb.com  |  Scraped and Visualized by @PhilliPhresh")
 ```
 
-For the statistically-unprepared, the black bars on the plot above show "confidence intervals" for the median IMDb rating on each genre: if the horizontal line overlaps with another, there is not enough data to suggest the different genres have statistically significant differences in median IMDb rating. The main takeaway here is that we can be pretty confident that episodes with hip-hop songs will rate lower than episodes with rock or country songs. Of course, the show would get dull fast if all songs were rock in a misguided attempt to maximize ratings.
+For the statistically-unprepared, the black bars on the plot above show "confidence intervals" for the median IMDb rating on each genre: if the horizontal line overlaps with another, there is not enough data to suggest it is anything more than random chance that different genres have different median IMDb ratings. The main takeaway here is that we can be pretty confident that episodes with hip-hop or disco songs will rate lower than episodes with rock or country songs. Of course, the show would get dull fast if, in a misguided attempt to maximize ratings, all songs were rock.
 
 ## Can my personal taste predict gold?
 

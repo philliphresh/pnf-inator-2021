@@ -96,11 +96,12 @@ Ferb episodes with songs of various genres.
 For the statistically-unprepared, the black bars on the plot above show
 “confidence intervals” for the median IMDb rating on each genre: if the
 horizontal line overlaps with another, there is not enough data to
-suggest the different genres have statistically significant differences
-in median IMDb rating. The main takeaway here is that we can be pretty
-confident that episodes with hip-hop songs will rate lower than episodes
-with rock or country songs. Of course, the show would get dull fast if
-all songs were rock in a misguided attempt to maximize ratings.
+suggest it is anything more than random chance that different genres
+have different median IMDb ratings. The main takeaway here is that we
+can be pretty confident that episodes with hip-hop or disco songs will
+rate lower than episodes with rock or country songs. Of course, the show
+would get dull fast if, in a misguided attempt to maximize ratings, all
+songs were rock.
 
 ## Can my personal taste predict gold?
 
