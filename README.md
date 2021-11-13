@@ -1,10 +1,12 @@
 
 # Aren’t you a little old to be watching Phineas and Ferb?
 
-Yes, yes I am. I love Phineas and Ferb. From the jokes to the songs to
-the inators, everything about it brings me joy. Going through a recent
-watch on Disney+ inspired me to analyze Phineas and Ferb data,
-specifically, specifically focusing on the music in the show.
+Yes, yes I am. Phineas and Ferb was Disney a television series that
+aired from 2007 to 2015, with the occasional one-off movies following
+it’s wrap. I love Phineas and Ferb! From the jokes, to the songs, to the
+inators, everything about it brings me joy. Going through a recent watch
+on Disney+ inspired me to analyze Phineas and Ferb data, specifically,
+focusing on the music in the show.
 
 # Hey, where’s the data from?
 
